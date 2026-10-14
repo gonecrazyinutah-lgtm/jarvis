@@ -20,7 +20,10 @@ if (!supported) {
 // The agent SDK uses the login belonging to the Claude CLI on this computer.
 // Without the CLI the face can load, but no conversation could ever complete.
 const win = process.platform === 'win32'
-const claude = spawnSync(win ? 'claude.cmd' : 'claude', ['--version'], {
+// cmd.exe resolves either claude.exe (official Windows/WinGet installer) or
+// claude.cmd (older npm install) through PATHEXT. Hard-coding .cmd would reject
+// the recommended Windows installation even though `claude` works in a terminal.
+const claude = spawnSync('claude', ['--version'], {
   cwd: root,
   encoding: 'utf8',
   timeout: 10000,
@@ -29,8 +32,9 @@ const claude = spawnSync(win ? 'claude.cmd' : 'claude', ['--version'], {
 })
 if (claude.status !== 0) {
   console.error('Claude Code is not installed or is not on your PATH.')
-  console.error('Install it: npm install -g @anthropic-ai/claude-code')
-  console.error('Then run `claude` once on this computer and complete login before starting JARVIS.')
+  if (win) console.error('Install it in PowerShell: winget install Anthropic.ClaudeCode')
+  else console.error('Install it: https://code.claude.com/docs/en/setup')
+  console.error('Then open a new terminal, run `claude`, and sign in before starting JARVIS.')
   process.exit(1)
 }
 
@@ -42,7 +46,7 @@ const ready = [
 ].every((path) => existsSync(new URL(`../${path}`, import.meta.url)))
 if (!ready) {
   console.log('First run: installing JARVIS dependencies on this computer. This can take a few minutes.\n')
-  const npm = spawnSync(win ? 'npm.cmd' : 'npm', ['ci', '--no-audit', '--no-fund'], {
+  const npm = spawnSync('npm', ['ci', '--no-audit', '--no-fund'], {
     cwd: root,
     stdio: 'inherit',
     shell: win,

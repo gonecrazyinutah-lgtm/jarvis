@@ -1,5 +1,7 @@
 # Put JARVIS on your computer
 
+**Windows 11 Home?** Follow the shorter [Windows 11 checklist](WINDOWS-11-SETUP.md).
+
 You can download the **Jarvis-Computer-Setup.zip** file on your phone and transfer
 it to your computer, or download the project ZIP directly onto your computer.
 **Unzip it on the computer** (rather than running files from inside the ZIP).
@@ -13,12 +15,12 @@ OS-specific dependencies; those must be set up on your own computer.
    This project needs Node **22.12+** (or **20.19+**); restart your terminal
    after installation. You can check with `node --version`.
 2. **Claude Code:** this assistant's brain uses your Claude Code subscription
-   and an internet connection. Install the CLI on the computer using the
-   [official instructions](https://docs.claude.com/en/docs/claude-code), or
-   run `npm install -g @anthropic-ai/claude-code` in a terminal. Then run
-   **`claude` once on that computer and complete sign-in**. Your phone's login
-   or this chat does not sign in the computer automatically. Don't send anyone
-   your password, tokens, or Claude configuration files.
+   and an internet connection. On Windows 11, run `winget install
+   Anthropic.ClaudeCode` in PowerShell; on other systems, follow the
+   [official setup guide](https://code.claude.com/docs/en/setup). Then open
+   a new terminal and run **`claude` once on that computer to sign in**. Your
+   phone's login or this chat does not sign in the computer automatically.
+   Don't send anyone your password, tokens, or Claude configuration files.
 3. **Google Chrome or Microsoft Edge:** install either, then use an ordinary
    browser window for JARVIS. An editor's embedded preview may display the UI
    but cannot reliably access the microphone.
@@ -32,7 +34,7 @@ In the unzipped project folder, choose the launcher for your computer:
 
 | Computer | What to do |
 |---|---|
-| Windows | Double-click **`Start-Jarvis-Windows.cmd`**. If SmartScreen warns about a downloaded script, inspect it before allowing it. |
+| Windows 11 Home | Double-click **`Start-Jarvis-Windows.cmd`**. See the [Windows 11 checklist](WINDOWS-11-SETUP.md) for exact steps. If SmartScreen warns about a downloaded script, inspect it before allowing it. |
 | Mac | Double-click **`Start-Jarvis-Mac.command`** in Finder, or open Terminal in this folder and run `sh Start-Jarvis-Mac.command`. |
 | Linux | Open a terminal in this folder and run `sh Start-Jarvis-Linux.sh`. |
 

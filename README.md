@@ -1,9 +1,8 @@
 # J.A.R.V.I.S.
 
-**Moving JARVIS from your phone to a computer?** Start with the
-[computer setup guide](COMPUTER-SETUP.md). It covers Windows, Mac and Linux,
-what to transfer, and first-run launchers. This repository does not contain
-anyone's login or API keys.
+**Windows 11 Home?** Follow the [Windows 11 setup checklist](WINDOWS-11-SETUP.md).
+For other computers, use the [computer setup guide](COMPUTER-SETUP.md). The
+project includes first-run launchers but not anyone's login or API keys.
 
 A browser voice assistant with an Iron Man holographic interface. Say
 **"Hey Jarvis"**, he wakes, listens, and does real things through your tools —
@@ -25,10 +24,10 @@ usage allowance are still required. Optional tools may have their own charges.
 Chrome or Edge, and an internet connection for the model.
 
 - **Claude Code, installed and logged in** — this is the only account you need.
-  Install it with the official method — `npm install -g @anthropic-ai/claude-code`,
-  or the platform installer at <https://docs.claude.com/en/docs/claude-code> —
-  then run `claude` once and complete login. The bridge reuses that login. **No
-  API key**, and usage is billed to your existing Claude account.
+  On Windows use `winget install Anthropic.ClaudeCode`, or follow the
+  [official setup guide](https://code.claude.com/docs/en/setup) for any OS.
+  Open a new terminal, run `claude` once and complete login. The bridge reuses
+  that login. **No API key** is needed in the default bridge mode.
 - **Node.js 22.12+ (or 20.19+)** — install the current LTS from
   <https://nodejs.org>. Earlier 20.x releases and Node 21 cannot run Vite 8.
 - **Google Chrome or Microsoft Edge**, in a **real browser window** — not an

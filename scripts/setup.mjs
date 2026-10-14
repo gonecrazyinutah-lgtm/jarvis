@@ -20,10 +20,10 @@ const nodeSupported =
   (major === 22 && minor >= 12) ||
   major > 22
 
-// A Windows npm/Claude global install usually exposes a .cmd shim. Node cannot
-// execute that shim without cmd.exe; all arguments here are fixed, not user text.
+// Windows native installers expose claude.exe; npm exposes claude.cmd. Let
+// cmd.exe resolve either via PATHEXT. Arguments here are fixed, not user text.
 function command(name, args) {
-  return spawnSync(process.platform === 'win32' ? `${name}.cmd` : name, args, {
+  return spawnSync(name, args, {
     encoding: 'utf8',
     timeout: 10000,
     shell: process.platform === 'win32',
@@ -52,8 +52,9 @@ if (claude.status === 0) {
   line(info, 'Make sure you have run `claude` on this computer and signed in; this check only verifies installation.')
 } else {
   line(warn, 'Claude Code is not on your PATH. JARVIS needs it to answer.')
-  line(info, 'Install: npm install -g @anthropic-ai/claude-code')
-  line(info, 'Then run `claude` and complete login on this computer (subscription required).')
+  if (process.platform === 'win32') line(info, 'In PowerShell: winget install Anthropic.ClaudeCode')
+  else line(info, 'Install: https://code.claude.com/docs/en/setup')
+  line(info, 'Open a new terminal, run `claude`, and sign in on this computer (subscription required).')
 }
 
 const browserNames = process.platform === 'win32'
@@ -67,12 +68,12 @@ const browserPaths = process.platform === 'darwin'
       join(homedir(), 'Applications/Microsoft Edge.app'),
     ]
   : process.platform === 'win32'
-    ? [
-        join(process.env.PROGRAMFILES ?? '', 'Google/Chrome/Application/chrome.exe'),
-        join(process.env['PROGRAMFILES(X86)'] ?? '', 'Microsoft/Edge/Application/msedge.exe'),
-        join(process.env.LOCALAPPDATA ?? '', 'Google/Chrome/Application/chrome.exe'),
-        join(process.env.LOCALAPPDATA ?? '', 'Microsoft/Edge/Application/msedge.exe'),
-      ]
+    ? [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA]
+        .filter(Boolean)
+        .flatMap((root) => [
+          join(root, 'Google/Chrome/Application/chrome.exe'),
+          join(root, 'Microsoft/Edge/Application/msedge.exe'),
+        ])
     : []
 const hasBrowser = browserPaths.some((path) => existsSync(path)) ||
   browserNames.some((name) => command(name, ['--version']).status === 0)
