@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
+# Downloadable transfer archive, regenerated from the committed source.
+Jarvis-Computer-Setup.zip
 
 # Editor directories and files
 .vscode/*

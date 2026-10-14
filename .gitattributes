@@ -1,0 +1,4 @@
+# Keep CRLF batch files byte-for-byte in both checkouts and downloadable archives.
+*.cmd -text whitespace=cr-at-eol
+*.command text eol=lf
+*.sh text eol=lf

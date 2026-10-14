@@ -15,6 +15,7 @@
  *   node bridge/server.mjs
  */
 
+import '../scripts/load-env.mjs'
 import { WebSocketServer } from 'ws'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { displayServer } from './panels.mjs'
@@ -26,7 +27,7 @@ import { readFileSync, realpathSync } from 'node:fs'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve as resolvePath } from 'node:path'
 import { openRemote, proxyError, vetTarget, PROXY_UA } from './net.mjs'
-import { probeUrl, renderPage } from './page.mjs'
+import { renderPage } from './page.mjs'
 
 const PORT = Number(process.env.JARVIS_BRIDGE_PORT ?? 8787)
 
@@ -96,7 +97,9 @@ function originAllowed(origin) {
  * runs a shell, or changes the world waits for JARVIS_ALLOW_WRITES=1. Start
  * without it, and turn it on once you trust what you're demoing.
  */
-const ALLOW_WRITES = process.env.JARVIS_ALLOW_WRITES === '1'
+// --writes also makes `npm run bridge:writes` work on Windows (POSIX-style
+// ENV=1 npm ... syntax does not).
+const ALLOW_WRITES = process.env.JARVIS_ALLOW_WRITES === '1' || process.argv.includes('--writes')
 
 /**
  * The orchestrator model. Override with JARVIS_MODEL to trade quality for pace
@@ -119,7 +122,7 @@ const MODEL = process.env.JARVIS_MODEL ?? 'claude-opus-5'
  * matters more than pace; drop back to 'low' when filming and every second of
  * dead air shows.
  */
-const EFFORT = process.env.JARVIS_EFFORT ?? 'high'
+const EFFORT = process.env.JARVIS_EFFORT ?? 'medium'
 
 /**
  * Both spellings of every renamed built-in are listed on purpose. The SDK
@@ -998,9 +1001,11 @@ const wss = new WebSocketServer({
     done(true)
   },
 })
-server.listen(PORT)
+// The assistant has access to this computer's tools and local files. Do not
+// expose its HTTP endpoints to other devices on the network by default.
+server.listen(PORT, '127.0.0.1')
 
-console.log(`[jarvis] bridge listening on ws://localhost:${PORT}`)
+console.log(`[jarvis] bridge listening on ws://localhost:${PORT} (this computer only)`)
 console.log(
   `[jarvis] speech ${elevenKey() ? 'via ElevenLabs (key from MCP config)' : 'using browser fallback voice'}`,
 )

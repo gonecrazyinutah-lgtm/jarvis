@@ -1,32 +1,36 @@
 # J.A.R.V.I.S.
 
+**Moving JARVIS from your phone to a computer?** Start with the
+[computer setup guide](COMPUTER-SETUP.md). It covers Windows, Mac and Linux,
+what to transfer, and first-run launchers. This repository does not contain
+anyone's login or API keys.
+
 A browser voice assistant with an Iron Man holographic interface. Say
 **"Hey Jarvis"**, he wakes, listens, and does real things through your tools —
 searches the web, generates images, drives your phone, reads your mail. The face
 is a web page (React + Vite + Three.js + custom GLSL). The brain is Claude Code,
 run headless as a library.
 
-**The only subscription you need is Claude Code.** No API keys, no OpenAI
-account, no cloud bill — the brain runs on your existing Claude Code login, and
-the heavy work (the model itself) runs on Anthropic's servers, so even a low-end
-laptop only has to draw the interface. **ElevenLabs is an optional add-on** that
-gives JARVIS a much better voice and sharper hearing; without it he speaks and
-listens through the browser's own speech, and everything still works.
+**The only required subscription is Claude Code.** The default bridge mode
+needs no API key: it uses the Claude Code login **on the computer running it**.
+The AI runs on Anthropic's servers, so an internet connection and your account's
+usage allowance are still required. Optional tools may have their own charges.
+**ElevenLabs is optional**; without it, JARVIS uses the browser's speech tools.
 
 ---
 
 ## Requirements
 
-**In one line:** a Claude Code subscription, plus two free things every computer
-can have — Node.js and Chrome. That's the whole list.
+**In one line:** a Claude Code subscription/login on the computer, Node.js,
+Chrome or Edge, and an internet connection for the model.
 
 - **Claude Code, installed and logged in** — this is the only account you need.
   Install it with the official method — `npm install -g @anthropic-ai/claude-code`,
   or the platform installer at <https://docs.claude.com/en/docs/claude-code> —
   then run `claude` once and complete login. The bridge reuses that login. **No
   API key**, and usage is billed to your existing Claude account.
-- **Node.js 20 or newer** — free, one installer from <https://nodejs.org>. This
-  is a Node web app, so it is the one unavoidable tool.
+- **Node.js 22.12+ (or 20.19+)** — install the current LTS from
+  <https://nodejs.org>. Earlier 20.x releases and Node 21 cannot run Vite 8.
 - **Google Chrome or Microsoft Edge**, in a **real browser window** — not an
   embedded preview pane. Preview panes (including the one inside editors and
   Claude Code) block microphone access, so the page loads and looks right but
@@ -35,50 +39,35 @@ can have — Node.js and Chrome. That's the whole list.
   gives a better voice and sharper transcription; the free tier is plenty for a
   demo. Without it, everything runs on the browser's own speech.
 
-Run `npm run setup` after cloning and it checks all of this for you, in plain
-language.
+Run `npm run setup` after installing dependencies for advisory checks in plain
+language; it cannot sign in for you. The included desktop launchers install
+dependencies on first run, then show the same checks.
 
 ---
 
 ## Quick start
 
-First, install, then start it:
+Unzip/clone the project **on the computer**, install Node and Claude Code there,
+and run `claude` once to sign in. Then, in this folder:
 
 ```bash
-npm install
-npm start          # runs the brain and the face together
+npm ci             # installs for this computer; requires internet
+npm run setup      # optional readiness check
+npm start          # runs brain and interface together, read-only by default
 ```
 
-Then open the URL it prints (http://localhost:5173) in **Chrome**, click **INITIALISE**, and say **“Hey Jarvis”**.
+Or use the OS-specific **Start-Jarvis** launcher in the
+[computer setup guide](COMPUTER-SETUP.md), which runs the install automatically
+on first use. Don't transfer `node_modules` from another machine.
 
-Prefer two terminals? Run them separately instead:
+Open **http://localhost:5173** in a **real Chrome or Edge window on that
+computer**, click **INITIALISE**, allow the microphone, and say **“Hey Jarvis”**.
+Ctrl+C in the terminal stops both processes. Editor preview panes often block
+the microphone even when the page appears to load.
 
-```bash
-npm install
-```
-
-Terminal 1 — the brain:
-
-```bash
-npm run bridge
-```
-
-Terminal 2 — the face:
-
-```bash
-npm run dev
-```
-
-Then open the app in a **real Chrome or Edge window**:
-
-```bash
-open http://localhost:5173
-```
-
-Click **INITIALISE**, allow the microphone when asked, and say **"Hey Jarvis"**.
-
-> It has to be a real browser window. Embedded preview panes block the
-> microphone, so JARVIS will look perfectly alive and simply never respond.
+Prefer two terminals? After `npm ci`, run `npm run bridge` in one and `npm run
+dev` in the other. The one-command `npm start` also copies the hand-tracking
+runtime into place; use it first if you want gesture controls.
 
 ---
 
@@ -144,8 +133,10 @@ configuration, and can drive his own interface.
 
 ### Your tools
 
-Every server in your `~/.claude.json` is handed to the SDK explicitly. Depending
-on what you have installed, that is roughly:
+MCP servers you configured **on this computer** in `~/.claude.json` are handed
+to the SDK. None are installed or signed in by this repository, and this chat's
+app connections don't transfer into Claude Code. Depending on what you set up,
+servers can include:
 
 - **Web & search** — `exa`, `serper`, `serpapi`
 - **Images & video** — `higgsfield`, `openrouter-image`, `palmier-pro`
@@ -161,8 +152,9 @@ A few things you can say:
 - *"Open my GitHub notifications."*
 
 > **Note on account connectors.** Servers you added through your **claude.ai
-> account** are not stored on disk, so the bridge cannot see them — it works from
-> the servers in `~/.claude.json` (about 14), not the claude.ai ones.
+> account** are not stored in this repository, so the bridge cannot see them —
+> it only uses MCP servers you explicitly configured in `~/.claude.json` on the
+> computer. A new setup may have none, and that is fine.
 
 ### JARVIS controls the interface
 
@@ -217,14 +209,17 @@ then the triangular arc reactor lighting up — with a start-up sound under it
 
 ## Configuration
 
-Everything is optional in bridge mode. Frontend settings live in `.env.local`
-(copy `.env.example`); bridge settings are environment variables.
+All configuration **settings** are optional in bridge mode (Claude Code login
+is still required). Copy `.env.example` to the gitignored `.env.local` for
+frontend `VITE_*` settings and/or bridge `JARVIS_*` / `ELEVENLABS_API_KEY`.
+The bridge and launcher now load this file too; shell variables take priority.
+Never put a secret in `VITE_*` — Vite exposes those to the browser.
 
 ### Bridge
 
 | Variable | Default | Effect |
 |---|---|---|
-| `JARVIS_BRIDGE_PORT` | `8787` | Port for the WebSocket + HTTP endpoints |
+| `JARVIS_BRIDGE_PORT` | `8787` | Port for the WebSocket + HTTP endpoints (also update `VITE_BRIDGE_URL` and bridge URLs in `index.html` CSP) |
 | `JARVIS_MODEL` | `claude-opus-5` | Model to run |
 | `JARVIS_EFFORT` | `medium` | Reasoning effort |
 | `JARVIS_ALLOW_WRITES` | off | `1` allows effectful tools (see below) |
@@ -249,7 +244,9 @@ Everything is optional in bridge mode. Frontend settings live in `.env.local`
 
 You do not have to touch a flag. Either:
 
-- Set `ELEVENLABS_API_KEY` on the bridge before starting it, **or**
+- Uncomment `ELEVENLABS_API_KEY=` in your local `.env.local`, add the key and
+  restart JARVIS (the file is ignored by Git), **or**
+- Set it in the shell that starts the bridge, **or**
 - Add the key to your `elevenlabs` MCP server's env in `~/.claude.json` — the
   bridge reads it from there too.
 
@@ -288,8 +285,14 @@ Press **T** for a one-line audio self-test.
 **No voice at all.** You must be in **Chrome or Edge**, in a **real browser
 window** (not an embedded preview), and you must have **allowed the microphone**.
 
-**Bridge not reachable.** Check that `npm run bridge` is still running in its
-terminal, and that nothing else is holding port `8787`.
+**Bridge not reachable.** If you used `npm start`, check the same terminal for
+bridge errors; otherwise check that `npm run bridge` is still running. Visit
+http://localhost:8787/health on the same computer; `{"ok":true,...}` means
+the bridge is up. Check for another program using port `8787` or `5173`.
+
+**The page loads, but replies fail.** Run `claude` in another terminal on this
+computer to verify your login and subscription. `npm run setup` can check the
+CLI is installed but cannot complete its login for you.
 
 ---
 
@@ -297,8 +300,10 @@ terminal, and that nothing else is holding port `8787`.
 
 All of this lives in `bridge/server.mjs`:
 
-- The WebSocket accepts only local dev origins (add more with
-  `JARVIS_ALLOWED_ORIGINS`).
+- The bridge binds to this computer's loopback interface, not the LAN. The
+  WebSocket accepts only local dev origins (add more with
+  `JARVIS_ALLOWED_ORIGINS` if you know why you need to). This is not a remote
+  phone-access setup.
 - `/file`, `/img` and `/media` validate the scheme, confine to allowed roots,
   resolve the real path, and refuse private and loopback addresses (SSRF guard).
 - The tool gate (`decideTool`) is default-deny for effectful MCP tools.

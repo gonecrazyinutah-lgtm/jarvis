@@ -1,116 +1,109 @@
 #!/usr/bin/env node
-// JARVIS preflight — a friendly, advisory check you run with `npm run setup`.
-//
-// It changes nothing and installs nothing. It looks at your machine, tells you
-// what is ready and what is missing, and prints the two commands that start
-// JARVIS. Every check degrades to a single friendly line if something is not
-// there, and the script always exits 0 — it is advice, not a gate.
+// Advisory checks for a fresh computer. Installs nothing, changes nothing,
+// never prints secrets, and always exits 0 so the instructions remain visible.
+// Run after npm ci (the desktop launchers do that automatically).
 
-import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import './load-env.mjs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
-const tick = '  ok  ';
-const warn = ' note ';
-const info = '  ·   ';
+const tick = '  ok  '
+const warn = ' note '
+const info = '  ·   '
+const line = (tag, msg) => console.log(`[${tag}] ${msg}`)
 
-function line(tag, msg) {
-  console.log(`[${tag}] ${msg}`);
+const [major, minor] = process.versions.node.split('.').map(Number)
+const nodeSupported =
+  (major === 20 && minor >= 19) ||
+  (major === 22 && minor >= 12) ||
+  major > 22
+
+// A Windows npm/Claude global install usually exposes a .cmd shim. Node cannot
+// execute that shim without cmd.exe; all arguments here are fixed, not user text.
+function command(name, args) {
+  return spawnSync(process.platform === 'win32' ? `${name}.cmd` : name, args, {
+    encoding: 'utf8',
+    timeout: 10000,
+    shell: process.platform === 'win32',
+    windowsHide: true,
+  })
 }
 
-console.log('');
-console.log('JARVIS preflight — checking your machine (nothing is changed)');
-console.log('------------------------------------------------------------');
+console.log('\nJARVIS preflight — checking your computer (nothing is changed)')
+console.log('------------------------------------------------------------')
 
-// --- Node version --------------------------------------------------------
-try {
-  const major = Number(process.versions.node.split('.')[0]);
-  if (Number.isFinite(major) && major >= 20) {
-    line(tick, `Node.js ${process.versions.node} (20+ required).`);
-  } else {
-    line(warn, `Node.js ${process.versions.node} is below 20. Please upgrade — the bridge needs Node 20 or newer.`);
-  }
-} catch {
-  line(warn, 'Could not read the Node.js version. JARVIS needs Node 20 or newer.');
-}
-
-// --- Claude CLI on PATH ---------------------------------------------------
-let claudeFound = false;
-try {
-  const res = spawnSync('claude', ['--version'], { encoding: 'utf8', timeout: 10000 });
-  if (res.status === 0 && res.stdout) {
-    claudeFound = true;
-    line(tick, `Claude CLI found: ${res.stdout.trim()}`);
-  }
-} catch {
-  // ignore — handled below
-}
-if (!claudeFound) {
-  line(warn, 'Claude CLI not found on your PATH.');
-  line(info, 'Install it: npm install -g @anthropic-ai/claude-code');
-  line(info, '  (or the platform installer at https://docs.claude.com/en/docs/claude-code)');
-  line(info, 'Then run `claude` once and complete login. The bridge uses that login — no API key needed.');
-}
-
-// --- ~/.claude.json and MCP servers --------------------------------------
-const claudeJsonPath = join(homedir(), '.claude.json');
-let mcpCount = 0;
-try {
-  const raw = readFileSync(claudeJsonPath, 'utf8');
-  let parsed = {};
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    parsed = {};
-  }
-  const servers = parsed && typeof parsed.mcpServers === 'object' && parsed.mcpServers ? parsed.mcpServers : {};
-  mcpCount = Object.keys(servers).length;
-  if (mcpCount > 0) {
-    line(tick, `~/.claude.json found with ${mcpCount} MCP server${mcpCount === 1 ? '' : 's'} configured.`);
-  } else {
-    line(info, '~/.claude.json found, but no MCP servers are configured yet. JARVIS still answers and drives its own interface.');
-  }
-} catch {
-  line(info, '~/.claude.json not found yet. It appears once you run `claude` and log in. JARVIS works without any MCP servers.');
-}
-
-// --- ElevenLabs key (env or the elevenlabs MCP entry) --------------------
-function findElevenLabsKey() {
-  if (process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_API_KEY.trim()) {
-    return 'environment (ELEVENLABS_API_KEY)';
-  }
-  try {
-    const raw = readFileSync(claudeJsonPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    const servers = parsed && parsed.mcpServers ? parsed.mcpServers : {};
-    const el = servers.elevenlabs;
-    const env = el && el.env ? el.env : {};
-    if (env.ELEVENLABS_API_KEY && String(env.ELEVENLABS_API_KEY).trim()) {
-      return 'the elevenlabs MCP server in ~/.claude.json';
-    }
-  } catch {
-    // ignore — no key discoverable
-  }
-  return null;
-}
-
-const elSource = findElevenLabsKey();
-if (elSource) {
-  line(tick, `Premium voice available — ElevenLabs key found via ${elSource}.`);
+if (nodeSupported) {
+  line(tick, `Node.js ${process.versions.node} is supported.`)
 } else {
-  line(info, 'No ElevenLabs key found — JARVIS will use browser speech (that is completely fine).');
-  line(info, '  Optional: add ELEVENLABS_API_KEY for a better voice and Scribe transcription. The free tier is enough for a demo.');
+  line(warn, `Node.js ${process.versions.node} is unsupported. Install Node 22.12+ (or 20.19+).`)
 }
 
-// --- How to run ----------------------------------------------------------
-console.log('');
-console.log('To run JARVIS, open two terminals:');
-console.log('  1)  npm run bridge      # the brain (Claude Code, headless)');
-console.log('  2)  npm run dev         # the face (open http://localhost:5173 in Chrome)');
-console.log('');
-console.log('Then click INITIALISE and say "Hey Jarvis".');
-console.log('To let JARVIS take real actions (phone, browser, sending), run `npm run bridge:writes` instead of `npm run bridge`.');
-console.log('');
+if (existsSync(new URL('../node_modules/vite/bin/vite.js', import.meta.url))) {
+  line(tick, 'Project dependencies installed.')
+} else {
+  line(warn, 'Project dependencies missing — run npm ci in this folder (or use a Start-Jarvis launcher).')
+}
 
-process.exit(0);
+const claude = command('claude', ['--version'])
+if (claude.status === 0) {
+  line(tick, `Claude Code found: ${claude.stdout.trim().split('\n')[0] || 'installed'}`)
+  line(info, 'Make sure you have run `claude` on this computer and signed in; this check only verifies installation.')
+} else {
+  line(warn, 'Claude Code is not on your PATH. JARVIS needs it to answer.')
+  line(info, 'Install: npm install -g @anthropic-ai/claude-code')
+  line(info, 'Then run `claude` and complete login on this computer (subscription required).')
+}
+
+const browserNames = process.platform === 'win32'
+  ? ['chrome', 'msedge']
+  : ['google-chrome', 'google-chrome-stable', 'microsoft-edge', 'microsoft-edge-stable']
+const browserPaths = process.platform === 'darwin'
+  ? [
+      '/Applications/Google Chrome.app',
+      '/Applications/Microsoft Edge.app',
+      join(homedir(), 'Applications/Google Chrome.app'),
+      join(homedir(), 'Applications/Microsoft Edge.app'),
+    ]
+  : process.platform === 'win32'
+    ? [
+        join(process.env.PROGRAMFILES ?? '', 'Google/Chrome/Application/chrome.exe'),
+        join(process.env['PROGRAMFILES(X86)'] ?? '', 'Microsoft/Edge/Application/msedge.exe'),
+        join(process.env.LOCALAPPDATA ?? '', 'Google/Chrome/Application/chrome.exe'),
+        join(process.env.LOCALAPPDATA ?? '', 'Microsoft/Edge/Application/msedge.exe'),
+      ]
+    : []
+const hasBrowser = browserPaths.some((path) => existsSync(path)) ||
+  browserNames.some((name) => command(name, ['--version']).status === 0)
+if (hasBrowser) {
+  line(tick, 'Chrome or Edge found. Open JARVIS in a normal browser window, not an editor preview.')
+} else {
+  line(warn, 'Chrome/Edge not detected. Install one if needed; microphone and WebGL require a real browser window.')
+}
+
+const claudeJsonPath = join(homedir(), '.claude.json')
+let servers = {}
+try {
+  const cfg = JSON.parse(readFileSync(claudeJsonPath, 'utf8'))
+  servers = cfg?.mcpServers && typeof cfg.mcpServers === 'object' ? cfg.mcpServers : {}
+  const count = Object.keys(servers).length
+  line(info, count
+    ? `${count} optional MCP server${count === 1 ? '' : 's'} configured in ~/.claude.json.`
+    : 'No MCP servers in ~/.claude.json yet; normal conversation still works.')
+} catch {
+  line(info, 'No ~/.claude.json found; optional MCP tools may not be configured. This does not check login.')
+}
+
+if (process.env.ELEVENLABS_API_KEY?.trim() || servers.elevenlabs?.env?.ELEVENLABS_API_KEY) {
+  line(tick, 'Optional ElevenLabs voice configured (key hidden).')
+} else {
+  line(info, 'No ElevenLabs key; browser speech is the default, which is fine.')
+}
+
+console.log('\nOn this computer:')
+console.log('  1. Run `claude` once to sign in (if you have not already).')
+console.log('  2. Run `npm start` in this folder, or use a Start-Jarvis launcher.')
+console.log('  3. Open http://localhost:5173 in Chrome/Edge, click INITIALISE, and allow the microphone.')
+console.log('  4. Say "Hey Jarvis" or hold Space to talk. Ctrl-C in the terminal stops it.')
+console.log('  JARVIS starts without permission to change files or send messages.\n')

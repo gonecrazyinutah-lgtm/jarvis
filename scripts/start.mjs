@@ -10,6 +10,7 @@
  * browser, send things): `npm start -- --writes`.
  */
 
+import './load-env.mjs'
 import { spawn } from 'node:child_process'
 import process from 'node:process'
 import { cpSync, existsSync, mkdirSync } from 'node:fs'
@@ -107,14 +108,18 @@ process.on('SIGTERM', () => shutdown(0))
 const port = process.env.PORT
 const bridgeEnv = writes ? { JARVIS_ALLOW_WRITES: '1' } : {}
 if (port) {
-  bridgeEnv.JARVIS_ALLOWED_ORIGINS = `http://localhost:${port},http://127.0.0.1:${port}`
+  bridgeEnv.JARVIS_ALLOWED_ORIGINS = [
+    process.env.JARVIS_ALLOWED_ORIGINS,
+    `http://localhost:${port}`,
+    `http://127.0.0.1:${port}`,
+  ].filter(Boolean).join(',')
   console.log(`  serving the face on port ${port}; the bridge will accept it.\n`)
 }
 
 vendorWasm()
 
 console.log('\nJ.A.R.V.I.S. starting — the brain and the face.\n')
-run('bridge', 'node', ['bridge/server.mjs'], '36', bridgeEnv)
+run('bridge', process.execPath, ['bridge/server.mjs'], '36', bridgeEnv)
 // npm is a shell script on most systems; call the vite binary directly so we do
 // not need shell:true (which would break the argument handling above).
 run('face', process.execPath, ['node_modules/vite/bin/vite.js'], '35', {})

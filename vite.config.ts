@@ -6,9 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     // Honour PORT so a second instance can run alongside the first. The bridge
-    // only accepts sockets from localhost:5173-5199, so stay inside that range
-    // or set JARVIS_ALLOWED_ORIGINS to match.
+    // trusts localhost:5173-5199 by default; scripts/start.mjs also adds an
+    // explicit PORT to its origin allowlist.
     port: Number(process.env.PORT) || 5173,
+    // An explicitly chosen port is also passed to the bridge's origin gate.
+    // If it is busy, fail loudly instead of silently moving to a refused port.
+    strictPort: Boolean(process.env.PORT),
   },
   optimizeDeps: {
     // kokoro-js pulls in `phonemizer`, which carries espeak-ng as inline WASM.
